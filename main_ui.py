@@ -1,3 +1,5 @@
+# main_ui.py
+
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -6,60 +8,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QPixmap
 from PyQt6.QtCore import Qt, pyqtSignal
 
-# ==========================================
-# 1. BAGIAN LOGIKA ALGORITMA (KALKULASI)
-# ==========================================
-class AlgoritmaGaris:
-    @staticmethod
-    def dda(x1, y1, x2, y2):
-        koordinat_piksel = []
-        dx = x2 - x1
-        dy = y2 - y1
-        
-        steps = max(abs(dx), abs(dy))
-        if steps == 0: return [(x1, y1)]
-            
-        x_inc = dx / steps
-        y_inc = dy / steps
-        
-        x = x1
-        y = y1
-        
-        for _ in range(int(steps) + 1):
-            koordinat_piksel.append((round(x), round(y)))
-            x += x_inc
-            y += y_inc
-            
-        return koordinat_piksel
-
-    @staticmethod
-    def bresenham(x1, y1, x2, y2):
-        koordinat_piksel = []
-        dx = abs(x2 - x1)
-        dy = abs(y2 - y1)
-        
-        sx = 1 if x1 < x2 else -1
-        sy = 1 if y1 < y2 else -1
-        
-        err = dx - dy
-        
-        while True:
-            koordinat_piksel.append((x1, y1))
-            if x1 == x2 and y1 == y2: break
-                
-            e2 = 2 * err
-            if e2 > -dy:
-                err -= dy
-                x1 += sx
-            if e2 < dx:
-                err += dx
-                y1 += sy
-                
-        return koordinat_piksel
-
+# --- IMPORT ALGORITMA DARI FILE SEBELAH ---
+from algoritma_garis import AlgoritmaGaris
 
 # ==========================================
-# 2. BAGIAN UI: KANVAS QPIXMAP + PENGGARIS + ZOOM + CTRL MOUSE
+# UI: KANVAS QPIXMAP + PENGGARIS + ZOOM + CTRL MOUSE
 # ==========================================
 class KanvasGambar(QWidget):
     koordinat_diklik = pyqtSignal(int, int)
@@ -89,6 +42,7 @@ class KanvasGambar(QWidget):
         painter.drawPixmap(0, 0, self.kertas_gambar)
         painter.restore()
         
+        # Background penggaris
         painter.fillRect(0, 0, self.width(), self.lebar_penggaris, QColor("#f5f5f5"))
         painter.fillRect(0, 0, self.lebar_penggaris, self.height(), QColor("#f5f5f5"))
         painter.fillRect(0, 0, self.lebar_penggaris, self.lebar_penggaris, QColor("#e8e8e8"))
@@ -136,6 +90,7 @@ class KanvasGambar(QWidget):
             else:
                 painter.drawLine(self.lebar_penggaris - 4, y_layar, self.lebar_penggaris, y_layar)
                 
+        # Garis batas penggaris
         pen_batas = QPen(QColor("#ccc"))
         painter.setPen(pen_batas)
         painter.drawLine(0, self.lebar_penggaris, self.width(), self.lebar_penggaris)
@@ -219,7 +174,7 @@ class KanvasGambar(QWidget):
 
 
 # ==========================================
-# 3. BAGIAN UI: JENDELA UTAMA & KONTROL
+# UI: JENDELA UTAMA & KONTROL
 # ==========================================
 class AplikasiUtama(QMainWindow):
     def __init__(self):
@@ -233,6 +188,7 @@ class AplikasiUtama(QMainWindow):
         
         panel_kontrol = QVBoxLayout()
         
+        # Panel Algoritma
         grup_algo = QGroupBox("Pilih Algoritma")
         layout_algo = QVBoxLayout()
         self.radio_dda = QRadioButton("DDA")
@@ -246,6 +202,7 @@ class AplikasiUtama(QMainWindow):
         grup_algo.setLayout(layout_algo)
         panel_kontrol.addWidget(grup_algo)
         
+        # Panel Koordinat
         grup_koordinat = QGroupBox("Input Koordinat")
         layout_koordinat = QVBoxLayout()
         self.input_x1 = QLineEdit(); self.input_x1.setPlaceholderText("X1")
@@ -273,7 +230,7 @@ class AplikasiUtama(QMainWindow):
         grup_koordinat.setLayout(layout_koordinat)
         panel_kontrol.addWidget(grup_koordinat)
         
-        # --- PANEL ZOOM ---
+        # Panel Zoom
         grup_zoom = QGroupBox("Zoom Kanvas (Atau Ctrl+Scroll)")
         layout_zoom = QHBoxLayout()
         self.btn_zoom_out = QPushButton("🔍 -")
@@ -290,9 +247,8 @@ class AplikasiUtama(QMainWindow):
         grup_zoom.setLayout(layout_zoom)
         panel_kontrol.addWidget(grup_zoom)
         
-        # --- PANEL UNDO & REDO (SUDAH DI TEMPAT YANG BENAR) ---
+        # Panel Undo & Redo
         layout_undo_redo = QHBoxLayout()
-        
         self.btn_undo = QPushButton("↩ Undo (Ctrl+Z)")
         self.btn_undo.setStyleSheet("background-color: #fff9c4; color: black;")
         self.btn_undo.clicked.connect(self.trigger_undo)
@@ -307,6 +263,7 @@ class AplikasiUtama(QMainWindow):
         layout_undo_redo.addWidget(self.btn_redo)
         panel_kontrol.addLayout(layout_undo_redo)
         
+        # Tombol Hapus Kanvas
         self.btn_hapus = QPushButton("Hapus / Bersihkan Kanvas")
         self.btn_hapus.setStyleSheet("background-color: #ffebee; color: black; font-weight: bold;")
         self.btn_hapus.clicked.connect(self.aksi_hapus_kanvas)
@@ -318,6 +275,7 @@ class AplikasiUtama(QMainWindow):
         
         panel_kontrol.addStretch()
         
+        # Init Kanvas
         self.kanvas = KanvasGambar()
         self.kanvas.koordinat_diklik.connect(self.tangani_klik_kanvas)
         self.kanvas.zoom_berubah.connect(self.update_label_zoom)
@@ -355,6 +313,7 @@ class AplikasiUtama(QMainWindow):
             x2 = int(self.input_x2.text())
             y2 = int(self.input_y2.text())
             
+            # --- MEMANGGIL LOGIKA DARI algoritma_garis.py ---
             if self.radio_dda.isChecked():
                 titik_titik = AlgoritmaGaris.dda(x1, y1, x2, y2)
             else:
@@ -371,6 +330,7 @@ class AplikasiUtama(QMainWindow):
         self.input_x2.clear(); self.input_y2.clear()
         self.lagi_klik_awal = True
 
+# --- TITIK JALANNYA PROGRAM ---
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     jendela = AplikasiUtama()
